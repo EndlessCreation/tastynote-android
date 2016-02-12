@@ -22,12 +22,8 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".GoogleCalendarSampleActivity"
-            android:label="@string/title_activity_google_calendar_sample"
-            android:theme="@style/AppTheme.NoActionBar" />
-        <activity
-            android:name=".GoogleDriveSampleActivity"
-            android:label="@string/title_activity_google_drive_sample_acitivty"
+            android:name=".googledrive.GoogleDriveCreateFolderActivity"
+            android:label="@string/title_activity_google_drive_create_folder_acitivty"
             android:theme="@style/AppTheme.NoActionBar"></activity>
     </application>
 

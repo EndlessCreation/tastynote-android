@@ -22,10 +22,12 @@ import android.util.Log;
 import android.view.View;
 
 import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.common.api.Status;
 import com.google.android.gms.drive.Drive;
 import com.google.android.gms.drive.DriveApi;
 import com.google.android.gms.drive.DriveFolder;
 import com.google.android.gms.drive.DriveFolder.DriveFolderResult;
+import com.google.android.gms.drive.Metadata;
 import com.google.android.gms.drive.MetadataChangeSet;
 import com.google.android.gms.drive.query.Filter;
 import com.google.android.gms.drive.query.Filters;
@@ -42,6 +44,7 @@ public class GoogleDriveCreateFolderActivity extends GoogleDriveBaseActivity {
     private static final String TAG = GoogleDriveCreateFolderActivity.class.getName();
 
     private ResultsAdapter mResultsAdapter;
+    DriveFolder mRootFolder;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,6 +66,7 @@ public class GoogleDriveCreateFolderActivity extends GoogleDriveBaseActivity {
         });
     }
 
+    //TODO: connect need 3 sec
     @Override
     public void onConnected(Bundle connectionHint) {
         super.onConnected(connectionHint);
@@ -82,27 +86,42 @@ public class GoogleDriveCreateFolderActivity extends GoogleDriveBaseActivity {
             }
 
             Log.v(TAG, "fetchRootCallback onResult() invoked. start query...");
-            DriveFolder rootFolder = Drive.DriveApi.getRootFolder(getGoogleApiClient());
+            mRootFolder = Drive.DriveApi.getRootFolder(getGoogleApiClient());
             Log.v(TAG, "result Folder Id: " + result.getDriveId().getResourceId());
+
+            //request sync (ignore cache)
+            Log.v(TAG, "start requestSync()");
+            //TODO: is this slow? yes it is. about 2 sec.
+            Drive.DriveApi.requestSync(getGoogleApiClient())
+                    .setResultCallback(requestSyncCallback);
+        }
+    };
+
+    final private ResultCallback<Status> requestSyncCallback = new ResultCallback<Status>() {
+
+        @Override
+        public void onResult(Status status) {
+            Log.v(TAG,"onResult() invoked by requestSync()");
 
             //query WORK_FOLDER_NAME on root exists.
             Filter nameFilter = Filters.eq(SearchableField.TITLE, Constants.GoogleDrive.WORK_FOLDER_NAME);
             Filter notTrashedFilter = Filters.eq(SearchableField.TRASHED, Boolean.FALSE);
 
             Query query = new Query.Builder()
-                    .addFilter (notTrashedFilter)
-                    .addFilter (nameFilter)
+                    .addFilter(notTrashedFilter)
+                    .addFilter(nameFilter)
                     .build(); //logical AND operate between two filters
-            rootFolder.queryChildren(getGoogleApiClient(), query)
-                    .setResultCallback(queryExistFolderOnRootCallback);
+            //TODO: queryChildren 0.3 sec
+            mRootFolder.queryChildren(getGoogleApiClient(),query).setResultCallback(queryExistFolderOnRootCallback);
         }
     };
+
 
     final private ResultCallback<DriveApi.MetadataBufferResult> queryExistFolderOnRootCallback = new
             ResultCallback<DriveApi.MetadataBufferResult>() {
                 @Override
                 public void onResult(DriveApi.MetadataBufferResult result) {
-                    Log.v(TAG, "onResult() invoked");
+                    Log.v(TAG, "onResult() invoked by queryChilderen()");
                     if (!result.getStatus().isSuccess()) {
                         showMessage("Problem while retrieving results");
                         return;
@@ -114,17 +133,32 @@ public class GoogleDriveCreateFolderActivity extends GoogleDriveBaseActivity {
                     //log
                     Log.v(TAG, "count: " + count);
                     for(int i=0; i<count; ++i) {
-                        Log.v(TAG, "i:"+i+", title: " + mResultsAdapter.getItem(i).getTitle()
-                                + ", createdDate: " + mResultsAdapter.getItem(i).getCreatedDate());
+                        Metadata item = mResultsAdapter.getItem(i);
+                        Log.v(TAG, "i:" + i
+                                        +", title: " + item.getTitle()
+                                        + ", createdDate: " + item.getCreatedDate()
+                                        + ", driveId: " + item.getDriveId()
+                                        + ", isTrashed: " + item.isTrashed()
+                                        + ", getContentAvailability: " + item.getContentAvailability()
+                                        + ", getDescription: " + item.getDescription()
+                        );
                     }
 
                     //if not exist, create folder on root
                     if(count == 0) {
+                        Log.v(TAG, "count is 0. create new tastynote folder.");
                         MetadataChangeSet changeSet = new MetadataChangeSet.Builder()
                                 .setTitle(Constants.GoogleDrive.WORK_FOLDER_NAME).build();
+
+                        //TODO: createFolder need 0.1 sec
                         Drive.DriveApi.getRootFolder(getGoogleApiClient()).createFolder(
                                 getGoogleApiClient(), changeSet).setResultCallback(createFolderOnRootCallback);
+
+                        //TODO: upload empty file(encoded by UTF-8, 0 byte).
                     }
+
+                    result.release(); //NOTE: have to do
+                    Log.v(TAG, "metadataBuffer released.");
                 }
             };
 

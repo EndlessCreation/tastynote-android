@@ -40,7 +40,7 @@ public class GoogleDriveSampleActivity extends AppCompatActivity implements Conn
     private Bitmap mBitmapToSave;
 
     /**
-     * Create a new file and save it to Drive.
+     * Create a new image file with camera and save it to Drive.
      */
     private void saveFileToDrive() {
         // Start by creating a new contents, and setting a callback.
