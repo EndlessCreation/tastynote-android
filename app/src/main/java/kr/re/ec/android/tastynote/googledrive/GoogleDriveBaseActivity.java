@@ -47,6 +47,8 @@ public class GoogleDriveBaseActivity extends AppCompatActivity implements
     @Override
     protected void onResume() {
         super.onResume();
+
+        Log.v(TAG, "onResume() invoked.");
         if (mGoogleApiClient == null) {
             // Create the API client and bind it to an instance variable.
             // Since no account name is passed, the user is prompted to choose.
@@ -58,6 +60,7 @@ public class GoogleDriveBaseActivity extends AppCompatActivity implements
                     .build();
         }
         // Connect the client. Once connected, the camera is launched.
+        //TODO: show progress anim
         mGoogleApiClient.connect();
     }
 

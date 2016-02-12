@@ -28,6 +28,7 @@ import com.google.android.gms.drive.Drive;
 import com.google.android.gms.drive.DriveApi.DriveContentsResult;
 import com.google.android.gms.drive.MetadataChangeSet;
 
+//TODO: remove this
 public class GoogleDriveSampleActivity extends AppCompatActivity implements ConnectionCallbacks,
         OnConnectionFailedListener {
 

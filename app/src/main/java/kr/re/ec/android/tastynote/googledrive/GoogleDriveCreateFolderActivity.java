@@ -66,7 +66,7 @@ public class GoogleDriveCreateFolderActivity extends GoogleDriveBaseActivity {
         });
     }
 
-    //TODO: connect need 3 sec
+    //TODO: connect need 0.2 ~ 3 sec
     @Override
     public void onConnected(Bundle connectionHint) {
         super.onConnected(connectionHint);
@@ -91,7 +91,7 @@ public class GoogleDriveCreateFolderActivity extends GoogleDriveBaseActivity {
 
             //request sync (ignore cache)
             Log.v(TAG, "start requestSync()");
-            //TODO: is this slow? yes it is. about 2 sec.
+            //TODO: is this slow? yes it is. about 1.8 ~ 2 sec.
             Drive.DriveApi.requestSync(getGoogleApiClient())
                     .setResultCallback(requestSyncCallback);
         }
@@ -154,10 +154,11 @@ public class GoogleDriveCreateFolderActivity extends GoogleDriveBaseActivity {
                         Drive.DriveApi.getRootFolder(getGoogleApiClient()).createFolder(
                                 getGoogleApiClient(), changeSet).setResultCallback(createFolderOnRootCallback);
 
-                        //TODO: upload empty file(encoded by UTF-8, 0 byte).
+                        //TODO: upload empty text(txt, 0 byte).
+
                     }
 
-                    result.release(); //NOTE: have to do
+                    result.release(); //NOTE: have to release
                     Log.v(TAG, "metadataBuffer released.");
                 }
             };
