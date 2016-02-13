@@ -6,5 +6,6 @@ package kr.re.ec.android.tastynote.common;
 public class Constants {
     abstract public class GoogleDrive {
         public static final String WORK_FOLDER_NAME = "TastyNote";
+        public static final String WORK_FILE_NAME = "tastynote.txt";
     }
 }

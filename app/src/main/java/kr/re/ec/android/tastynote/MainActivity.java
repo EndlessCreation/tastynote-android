@@ -47,8 +47,8 @@ public class MainActivity extends GoogleDriveBaseActivity {
     private ResultsAdapter mResultsAdapter;
     DriveFolder mRootFolder;
 
-    /* working folder must be child of root folder. */
-    DriveFolder mWorkingFolder;
+    /* work folder must be child of root folder. */
+    DriveFolder mWorkFolder;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -150,7 +150,7 @@ public class MainActivity extends GoogleDriveBaseActivity {
 
                     //if not exist, create folder on root
                     if(count == 0) {
-                        Log.v(TAG, "count is 0. create new tastynote folder.");
+                        Log.v(TAG, "count is 0. create new working folder.");
                         MetadataChangeSet changeSet = new MetadataChangeSet.Builder()
                                 .setTitle(Constants.GoogleDrive.WORK_FOLDER_NAME).build();
 
@@ -173,8 +173,8 @@ public class MainActivity extends GoogleDriveBaseActivity {
                 showMessage("Error while trying to create the folder");
                 return;
             }
-            mWorkingFolder = result.getDriveFolder();
-            showMessage("Created a folder: " + mWorkingFolder.getDriveId());
+            mWorkFolder = result.getDriveFolder();
+            showMessage("Created a folder: " + mWorkFolder.getDriveId());
 
             //do upload empty text(txt, 0 byte).
             //create new contents resource
@@ -197,11 +197,11 @@ public class MainActivity extends GoogleDriveBaseActivity {
                     }
 
                     MetadataChangeSet changeSet = new MetadataChangeSet.Builder()
-                            .setTitle("appconfig.txt")
+                            .setTitle(Constants.GoogleDrive.WORK_FILE_NAME)
                             .setMimeType("text/plain")
                             .build();
                     Log.v(TAG, "start createFile()");
-                    mWorkingFolder.createFile(getGoogleApiClient(), changeSet, result.getDriveContents())
+                    mWorkFolder.createFile(getGoogleApiClient(), changeSet, result.getDriveContents())
                             .setResultCallback(createFileCallback);
                 }
             };
