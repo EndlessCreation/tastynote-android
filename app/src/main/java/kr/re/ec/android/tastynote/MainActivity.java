@@ -17,7 +17,6 @@ package kr.re.ec.android.tastynote;
 import android.content.Context;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
@@ -88,6 +87,8 @@ public class MainActivity extends GoogleDriveBaseActivity {
 
         mTextView = (TextView) findViewById(R.id.text_view);
         mEditText = (EditText) findViewById(R.id.edit_text);
+
+        //TODO: setOnClickListener on textview and call enableEditMode
 
         disableEditMode();
     }
@@ -243,10 +244,13 @@ public class MainActivity extends GoogleDriveBaseActivity {
 
     private void enableEditMode() {
         Log.v(TAG, "enableEditMode() called");
+
+        //set visibilities
         mTextView.setVisibility(View.INVISIBLE);
         mEditText.setVisibility(View.VISIBLE);
         mFab.setVisibility(View.INVISIBLE);
 
+        //set focus and show keyboard
         mEditText.setFocusableInTouchMode(true);
         mEditText.requestFocus();
         showKeyboard(mEditText);
@@ -262,9 +266,13 @@ public class MainActivity extends GoogleDriveBaseActivity {
 
     private void disableEditMode() {
         Log.v(TAG, "disableEditMode() called");
+
+        //set visibilities
         mTextView.setVisibility(View.VISIBLE);
         mEditText.setVisibility(View.INVISIBLE);
         mFab.setVisibility(View.VISIBLE);
+
+        mTextView.setText(mEditText.getText());
 
         //TODO: saveDataToLocal
 
