@@ -14,12 +14,16 @@
 
 package kr.re.ec.android.tastynote;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
+import android.widget.TextView;
 
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
@@ -44,11 +48,18 @@ import kr.re.ec.android.tastynote.googledrive.ResultsAdapter;
 public class MainActivity extends GoogleDriveBaseActivity {
     private static final String TAG = MainActivity.class.getName();
 
+    //google drive
     private ResultsAdapter mResultsAdapter;
-    DriveFolder mRootFolder;
+    private DriveFolder mRootFolder;
 
     /* work folder must be child of root folder. */
-    DriveFolder mWorkFolder;
+    private DriveFolder mWorkFolder;
+
+    //ui components
+    private TextView mTextView;
+    private EditText mEditText;
+    private FloatingActionButton mFab;
+    private boolean mEditMode = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,18 +67,29 @@ public class MainActivity extends GoogleDriveBaseActivity {
 
         mResultsAdapter = new ResultsAdapter(this);
 
+        initUiComponents();
+    }
+
+    private void initUiComponents() {
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
+        mFab = (FloatingActionButton) findViewById(R.id.fab);
+        mFab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                Log.v(TAG, "fab onClick() invoked");
+                enableEditMode();
+//                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+//                        .setAction("Action", null).show();
             }
         });
+
+        mTextView = (TextView) findViewById(R.id.text_view);
+        mEditText = (EditText) findViewById(R.id.edit_text);
+
+        disableEditMode();
     }
 
     //NOTE: connect need 0.2 ~ 3 sec
@@ -184,7 +206,6 @@ public class MainActivity extends GoogleDriveBaseActivity {
         }
     };
 
-
     // [START drive_contents_callback]
     final private ResultCallback<DriveApi.DriveContentsResult> newDriveContentsCallback =
             new ResultCallback<DriveApi.DriveContentsResult>() {
@@ -219,4 +240,51 @@ public class MainActivity extends GoogleDriveBaseActivity {
                     showMessage("Created a file in Working Folder. id: " + result.getDriveFile().getDriveId());
                 }
             };
+
+    private void enableEditMode() {
+        Log.v(TAG, "enableEditMode() called");
+        mTextView.setVisibility(View.INVISIBLE);
+        mEditText.setVisibility(View.VISIBLE);
+        mFab.setVisibility(View.INVISIBLE);
+
+        mEditText.setFocusableInTouchMode(true);
+        mEditText.requestFocus();
+        showKeyboard(mEditText);
+
+        mEditMode = true;
+    }
+
+    private void showKeyboard(EditText et) {
+        final InputMethodManager inputMethodManager = (InputMethodManager) this
+                .getSystemService(Context.INPUT_METHOD_SERVICE);
+        inputMethodManager.showSoftInput(et, InputMethodManager.SHOW_IMPLICIT);
+    }
+
+    private void disableEditMode() {
+        Log.v(TAG, "disableEditMode() called");
+        mTextView.setVisibility(View.VISIBLE);
+        mEditText.setVisibility(View.INVISIBLE);
+        mFab.setVisibility(View.VISIBLE);
+
+        //TODO: saveDataToLocal
+
+        mEditMode = false;
+    }
+
+    @Override
+    public void onBackPressed() {
+        Log.v(TAG, "onBackPressed() invoked. mEditMode: " + mEditMode);
+
+        if(mEditMode) {
+            disableEditMode();
+        } else {
+            super.onBackPressed();
+        }
+    }
+
+    //TODO: loadDataFromLocal
+    //TODO: saveDataToLocal
+    //TODO: syncDataToRemote
+    //TODO: showProgressDialog
+    //TODO: hideProgressDialog
 }
