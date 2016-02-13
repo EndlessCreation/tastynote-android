@@ -28,6 +28,6 @@
         android:scrollbars="vertical"
         android:gravity="left|top"
         android:textSize="14dp"
-        android:background="@android:color/darker_gray"/>
+        android:background="@android:color/white"/>
 
 </RelativeLayout>

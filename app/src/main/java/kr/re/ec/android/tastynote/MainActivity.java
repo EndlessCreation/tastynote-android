@@ -256,6 +256,8 @@ public class MainActivity extends GoogleDriveBaseActivity {
         showKeyboard(mEditText);
 
         mEditMode = true;
+
+        //TODO: make textview scrollable
     }
 
     private void showKeyboard(EditText et) {
