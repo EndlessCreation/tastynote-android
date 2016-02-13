@@ -14,17 +14,15 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".MainActivity">
+        <activity
+            android:name=".MainActivity"
+            android:label="@string/title_activity_main_activity"
+            android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity
-            android:name=".googledrive.GoogleDriveCreateFolderActivity"
-            android:label="@string/title_activity_google_drive_create_folder_acitivty"
-            android:theme="@style/AppTheme.NoActionBar"></activity>
     </application>
 
 </manifest>
