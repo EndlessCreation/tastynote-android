@@ -47,6 +47,9 @@ public class MainActivity extends GoogleDriveBaseActivity {
     private ResultsAdapter mResultsAdapter;
     DriveFolder mRootFolder;
 
+    /* working folder must be child of root folder. */
+    DriveFolder mWorkingFolder;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -67,7 +70,7 @@ public class MainActivity extends GoogleDriveBaseActivity {
         });
     }
 
-    //TODO: connect need 0.2 ~ 3 sec
+    //NOTE: connect need 0.2 ~ 3 sec
     @Override
     public void onConnected(Bundle connectionHint) {
         super.onConnected(connectionHint);
@@ -112,8 +115,8 @@ public class MainActivity extends GoogleDriveBaseActivity {
                     .addFilter(notTrashedFilter)
                     .addFilter(nameFilter)
                     .build(); //logical AND operate between two filters
-            //TODO: queryChildren 0.3 sec
-            mRootFolder.queryChildren(getGoogleApiClient(),query).setResultCallback(queryExistFolderOnRootCallback);
+            //NOTE: queryChildren 0.3 sec
+            mRootFolder.queryChildren(getGoogleApiClient(), query).setResultCallback(queryExistFolderOnRootCallback);
         }
     };
 
@@ -151,12 +154,10 @@ public class MainActivity extends GoogleDriveBaseActivity {
                         MetadataChangeSet changeSet = new MetadataChangeSet.Builder()
                                 .setTitle(Constants.GoogleDrive.WORK_FOLDER_NAME).build();
 
-                        //TODO: createFolder need 0.1 sec
+                        //NOTE: createFolder need 0.1 sec
+                        Log.v(TAG, "createFolder()");
                         Drive.DriveApi.getRootFolder(getGoogleApiClient()).createFolder(
-                                getGoogleApiClient(), changeSet).setResultCallback(createFolderOnRootCallback);
-
-                        //TODO: upload empty text(txt, 0 byte).
-
+                                getGoogleApiClient(), changeSet).setResultCallback(createFolderCallback);
                     }
 
                     result.release(); //NOTE: have to release
@@ -164,15 +165,58 @@ public class MainActivity extends GoogleDriveBaseActivity {
                 }
             };
 
-    final ResultCallback<DriveFolderResult> createFolderOnRootCallback = new ResultCallback<DriveFolderResult>() {
+    final ResultCallback<DriveFolderResult> createFolderCallback = new ResultCallback<DriveFolderResult>() {
         @Override
         public void onResult(DriveFolderResult result) {
+            Log.v(TAG, "onResult() invoked by createFolder()");
             if (!result.getStatus().isSuccess()) {
                 showMessage("Error while trying to create the folder");
                 return;
             }
-            showMessage("Created a folder: " + result.getDriveFolder().getDriveId());
+            mWorkingFolder = result.getDriveFolder();
+            showMessage("Created a folder: " + mWorkingFolder.getDriveId());
+
+            //do upload empty text(txt, 0 byte).
+            //create new contents resource
+            Log.v(TAG, "start newDriveContents()");
+            Drive.DriveApi.newDriveContents(getGoogleApiClient())
+                    .setResultCallback(newDriveContentsCallback);
         }
     };
 
+
+    // [START drive_contents_callback]
+    final private ResultCallback<DriveApi.DriveContentsResult> newDriveContentsCallback =
+            new ResultCallback<DriveApi.DriveContentsResult>() {
+                @Override
+                public void onResult(DriveApi.DriveContentsResult result) {
+                    Log.v(TAG, "onResult() invoked by newDriveContents()");
+                    if (!result.getStatus().isSuccess()) {
+                        showMessage("Error while trying to create new file contents");
+                        return;
+                    }
+
+                    MetadataChangeSet changeSet = new MetadataChangeSet.Builder()
+                            .setTitle("appconfig.txt")
+                            .setMimeType("text/plain")
+                            .build();
+                    Log.v(TAG, "start createFile()");
+                    mWorkingFolder.createFile(getGoogleApiClient(), changeSet, result.getDriveContents())
+                            .setResultCallback(createFileCallback);
+                }
+            };
+    // [END drive_contents_callback]
+
+    final private ResultCallback<DriveFolder.DriveFileResult> createFileCallback = new
+            ResultCallback<DriveFolder.DriveFileResult>() {
+                @Override
+                public void onResult(DriveFolder.DriveFileResult result) {
+                    Log.v(TAG, "onResult() invoked by createFile()");
+                    if (!result.getStatus().isSuccess()) {
+                        showMessage("Error while trying to create the file");
+                        return;
+                    }
+                    showMessage("Created a file in Working Folder. id: " + result.getDriveFile().getDriveId());
+                }
+            };
 }
