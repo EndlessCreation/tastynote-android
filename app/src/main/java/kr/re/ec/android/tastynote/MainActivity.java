@@ -38,8 +38,7 @@ import com.google.android.gms.drive.query.Query;
 import com.google.android.gms.drive.query.SearchableField;
 
 import kr.re.ec.android.tastynote.common.Constants;
-import kr.re.ec.android.tastynote.googledrive.GoogleDriveBaseActivity;
-import kr.re.ec.android.tastynote.googledrive.ResultsAdapter;
+import kr.re.ec.android.tastynote.common.FileUtil;
 
 /**
  * An activity to illustrate how to create a new folder.
@@ -276,7 +275,8 @@ public class MainActivity extends GoogleDriveBaseActivity {
 
         mTextView.setText(mEditText.getText());
 
-        //TODO: saveDataToLocal
+        //TODO: make asynchronous
+        FileUtil.saveDataToLocal(mEditText.getText().toString());
 
         mEditMode = false;
     }

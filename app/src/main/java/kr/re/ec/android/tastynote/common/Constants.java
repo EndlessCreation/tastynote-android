@@ -8,4 +8,8 @@ public class Constants {
         public static final String WORK_FOLDER_NAME = "TastyNote";
         public static final String WORK_FILE_NAME = "tastynote.txt";
     }
+    abstract public class File {
+        public static final String WORK_FOLDER_NAME = "TastyNote";
+        public static final String WORK_FILE_NAME = "tastynote.txt";
+    }
 }

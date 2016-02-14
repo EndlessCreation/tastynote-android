@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-package kr.re.ec.android.tastynote.googledrive;
+package kr.re.ec.android.tastynote;
 
 import android.content.IntentSender.SendIntentException;
 import android.os.Bundle;
