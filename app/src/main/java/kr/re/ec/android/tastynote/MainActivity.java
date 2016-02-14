@@ -18,8 +18,6 @@ import android.content.Context;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.widget.Toolbar;
-import android.text.method.LinkMovementMethod;
-import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
@@ -30,6 +28,8 @@ import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.drive.Drive;
 import com.google.android.gms.drive.DriveApi;
+import com.google.android.gms.drive.DriveContents;
+import com.google.android.gms.drive.DriveFile;
 import com.google.android.gms.drive.DriveFolder;
 import com.google.android.gms.drive.DriveFolder.DriveFolderResult;
 import com.google.android.gms.drive.Metadata;
@@ -39,6 +39,9 @@ import com.google.android.gms.drive.query.Filters;
 import com.google.android.gms.drive.query.Query;
 import com.google.android.gms.drive.query.SearchableField;
 
+import java.io.IOException;
+import java.io.OutputStream;
+
 import kr.re.ec.android.tastynote.common.Constants;
 import kr.re.ec.android.tastynote.common.FileUtil;
 
@@ -46,7 +49,7 @@ import kr.re.ec.android.tastynote.common.FileUtil;
  * An activity to illustrate how to create a new folder.
  */
 public class MainActivity extends GoogleDriveBaseActivity {
-    private static final String TAG = MainActivity.class.getName();
+    private static final String TAG = MainActivity.class.getSimpleName();
 
     //google drive
     private ResultsAdapter mResultsAdapter;
@@ -54,6 +57,7 @@ public class MainActivity extends GoogleDriveBaseActivity {
 
     /* work folder must be child of root folder. */
     private DriveFolder mWorkFolder;
+    private DriveFile mWorkFile;
 
     //ui components
     private TextView mTextView;
@@ -91,8 +95,13 @@ public class MainActivity extends GoogleDriveBaseActivity {
 
         mTextView = (TextView) findViewById(R.id.text_view);
         mEditText = (EditText) findViewById(R.id.edit_text);
-
-        //TODO: setOnClickListener on textview and call enableEditMode
+        mTextView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //TODO: make this twice click
+                enableEditMode();
+            }
+        });
 
         mEditText.setText(text);
         disableEditMode();
@@ -133,7 +142,7 @@ public class MainActivity extends GoogleDriveBaseActivity {
 
         @Override
         public void onResult(Status status) {
-            Log.v(TAG,"onResult() invoked by requestSync()");
+            Log.v(TAG, "onResult() invoked by requestSync()");
 
             //query WORK_FOLDER_NAME on root exists.
             Filter nameFilter = Filters.eq(SearchableField.TITLE, Constants.GoogleDrive.WORK_FOLDER_NAME);
@@ -144,6 +153,7 @@ public class MainActivity extends GoogleDriveBaseActivity {
                     .addFilter(nameFilter)
                     .build(); //logical AND operate between two filters
             //NOTE: queryChildren 0.3 sec
+            Log.v(TAG, "start queryChildren() for find working folder");
             mRootFolder.queryChildren(getGoogleApiClient(), query).setResultCallback(queryExistFolderOnRootCallback);
         }
     };
@@ -164,10 +174,10 @@ public class MainActivity extends GoogleDriveBaseActivity {
                     int count = mResultsAdapter.getCount();
                     //log
                     Log.v(TAG, "count: " + count);
-                    for(int i=0; i<count; ++i) {
+                    for (int i = 0; i < count; ++i) {
                         Metadata item = mResultsAdapter.getItem(i);
                         Log.v(TAG, "i:" + i
-                                        +", title: " + item.getTitle()
+                                        + ", title: " + item.getTitle()
                                         + ", createdDate: " + item.getCreatedDate()
                                         + ", driveId: " + item.getDriveId()
                                         + ", isTrashed: " + item.isTrashed()
@@ -176,8 +186,7 @@ public class MainActivity extends GoogleDriveBaseActivity {
                         );
                     }
 
-                    //if not exist, create folder on root
-                    if(count == 0) {
+                    if (count == 0) { //if not exist, create folder on root
                         Log.v(TAG, "count is 0. create new working folder.");
                         MetadataChangeSet changeSet = new MetadataChangeSet.Builder()
                                 .setTitle(Constants.GoogleDrive.WORK_FOLDER_NAME).build();
@@ -186,10 +195,65 @@ public class MainActivity extends GoogleDriveBaseActivity {
                         Log.v(TAG, "createFolder()");
                         Drive.DriveApi.getRootFolder(getGoogleApiClient()).createFolder(
                                 getGoogleApiClient(), changeSet).setResultCallback(createFolderCallback);
+                    } else if (count == 1) { //it's OK
+                        Log.v(TAG, "count is 1. start getting working file id");
+                        mWorkFolder = mResultsAdapter.getItem(0).getDriveId().asDriveFolder();
+
+                        //query children working file.
+                        Filter nameFilter = Filters.eq(SearchableField.TITLE, Constants.GoogleDrive.WORK_FILE_NAME);
+
+                        Query query = new Query.Builder().addFilter(nameFilter)
+                                .build(); //logical AND operate between two filters
+                        Log.v(TAG, "start queryChildren() for find working file");
+                        mWorkFolder.queryChildren(getGoogleApiClient(), query).setResultCallback(queryExistFileOnWorkingFolderCallback);
+
+                    } else if (count > 1) {
+                        Log.v(TAG, "count is more than 1. FATAL ERROR");
+                        throw new ArrayIndexOutOfBoundsException("FATAL: count of Work Folder is more than 1. plz make 1 working folder in your Google Drive");
                     }
 
                     result.release(); //NOTE: have to release
                     Log.v(TAG, "metadataBuffer released.");
+                }
+            };
+
+    final private ResultCallback<DriveApi.MetadataBufferResult> queryExistFileOnWorkingFolderCallback = new
+            ResultCallback<DriveApi.MetadataBufferResult>() {
+                @Override
+                public void onResult(DriveApi.MetadataBufferResult result) {
+                    Log.v(TAG, "onResult() invoked by queryChilderen()");
+                    if (!result.getStatus().isSuccess()) {
+                        showMessage("Problem while retrieving results");
+                        return;
+                    }
+                    mResultsAdapter.clear();
+                    mResultsAdapter.append(result.getMetadataBuffer());
+
+                    int count = mResultsAdapter.getCount();
+                    //log
+                    Log.v(TAG, "count: " + count);
+
+                    for (int i = 0; i < count; ++i) {
+                        Metadata item = mResultsAdapter.getItem(i);
+                        Log.v(TAG, "i:" + i
+                                        + ", title: " + item.getTitle()
+                                        + ", createdDate: " + item.getCreatedDate()
+                                        + ", driveId: " + item.getDriveId()
+                                        + ", isTrashed: " + item.isTrashed()
+                                        + ", getContentAvailability: " + item.getContentAvailability()
+                                        + ", getDescription: " + item.getDescription()
+                        );
+                    }
+
+                    if (count == 0) {
+                        //TODO: make file and get File ID
+                    } else if(count == 1) {
+                        mWorkFile = mResultsAdapter.getItem(0).getDriveId().asDriveFile();
+                        Log.v(TAG, "mWorkFile ID: " + mWorkFile.getDriveId());
+                    } else if(count > 1) {
+                        Log.v(TAG, "count is more than 1. FATAL ERROR");
+                        throw new ArrayIndexOutOfBoundsException("FATAL: count of Work File is more than 1. plz make 1 working file in your Google Drive");
+                    }
                 }
             };
 
@@ -261,8 +325,6 @@ public class MainActivity extends GoogleDriveBaseActivity {
         showKeyboard(mEditText);
 
         mEditMode = true;
-
-        //TODO: make textview scrollable
     }
 
     private void showKeyboard(EditText et) {
@@ -283,7 +345,16 @@ public class MainActivity extends GoogleDriveBaseActivity {
 
         FileUtil.saveDataToLocal(mEditText.getText().toString());
 
+        Log.v(TAG, "start syncDataToRemote()");
+        if(mWorkFile != null) {
+            syncDataToRemote();
+        }
+
         mEditMode = false;
+    }
+
+    public void syncDataToRemote() {
+        new EditContentsAsyncTask(MainActivity.this).execute(mWorkFile);
     }
 
     @Override
@@ -295,9 +366,48 @@ public class MainActivity extends GoogleDriveBaseActivity {
         } else {
             super.onBackPressed();
         }
+
+        //TODO: on view mode, to exit back button twice
     }
 
-    //TODO: syncDataToRemote
     //TODO: showProgressDialog
     //TODO: hideProgressDialog
+
+    public class EditContentsAsyncTask extends GoogleDriveApiClientAsyncTask<DriveFile, Void, Boolean> {
+        private final String TAG = EditContentsAsyncTask.class.getSimpleName();
+
+        public EditContentsAsyncTask(Context context) {
+            super(context);
+        }
+
+        @Override
+        protected Boolean doInBackgroundConnected(DriveFile... args) {
+            DriveFile file = args[0];
+            try {
+                DriveApi.DriveContentsResult driveContentsResult = file.open(
+                        getGoogleApiClient(), DriveFile.MODE_WRITE_ONLY, null).await();
+                if (!driveContentsResult.getStatus().isSuccess()) {
+                    return false;
+                }
+                DriveContents driveContents = driveContentsResult.getDriveContents();
+                OutputStream outputStream = driveContents.getOutputStream();
+                outputStream.write(mEditText.getText().toString().getBytes()); //TODO: is this work?
+                com.google.android.gms.common.api.Status status =
+                        driveContents.commit(getGoogleApiClient(), null).await();
+                return status.getStatus().isSuccess();
+            } catch (IOException e) {
+                Log.e(TAG, "IOException while appending to the output stream", e);
+            }
+            return false;
+        }
+
+        @Override
+        protected void onPostExecute(Boolean result) {
+            if (!result) {
+                showMessage("Error while editing contents");
+                return;
+            }
+            showMessage("Successfully edited contents");
+        }
+    }
 }
