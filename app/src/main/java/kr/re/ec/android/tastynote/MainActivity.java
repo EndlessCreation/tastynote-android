@@ -32,6 +32,7 @@ import com.google.android.gms.drive.DriveContents;
 import com.google.android.gms.drive.DriveFile;
 import com.google.android.gms.drive.DriveFolder;
 import com.google.android.gms.drive.DriveFolder.DriveFolderResult;
+import com.google.android.gms.drive.DriveId;
 import com.google.android.gms.drive.Metadata;
 import com.google.android.gms.drive.MetadataChangeSet;
 import com.google.android.gms.drive.query.Filter;
@@ -39,8 +40,11 @@ import com.google.android.gms.drive.query.Filters;
 import com.google.android.gms.drive.query.Query;
 import com.google.android.gms.drive.query.SearchableField;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.util.concurrent.ExecutionException;
 
 import kr.re.ec.android.tastynote.common.Constants;
 import kr.re.ec.android.tastynote.common.FileUtil;
@@ -250,10 +254,20 @@ public class MainActivity extends GoogleDriveBaseActivity {
                     } else if(count == 1) {
                         mWorkFile = mResultsAdapter.getItem(0).getDriveId().asDriveFile();
                         Log.v(TAG, "mWorkFile ID: " + mWorkFile.getDriveId());
+
+                        String contents = null;
+                        //get exists file contents
+                        new RetrieveDriveFileContentsAsyncTask(
+                                MainActivity.this).execute(mWorkFile.getDriveId());
+
+
                     } else if(count > 1) {
                         Log.v(TAG, "count is more than 1. FATAL ERROR");
                         throw new ArrayIndexOutOfBoundsException("FATAL: count of Work File is more than 1. plz make 1 working file in your Google Drive");
                     }
+
+                    result.release(); //NOTE: have to release
+                    Log.v(TAG, "metadataBuffer released.");
                 }
             };
 
@@ -408,6 +422,65 @@ public class MainActivity extends GoogleDriveBaseActivity {
                 return;
             }
             showMessage("Successfully edited contents");
+        }
+    }
+
+    final private class RetrieveDriveFileContentsAsyncTask
+            extends GoogleDriveApiClientAsyncTask<DriveId, Boolean, String> {
+        private final String TAG = RetrieveDriveFileContentsAsyncTask.class.getSimpleName();
+
+        public RetrieveDriveFileContentsAsyncTask(Context context) {
+            super(context);
+        }
+
+        @Override
+        protected String doInBackgroundConnected(DriveId... params) {
+            Log.v(TAG, "doInBackgroundConnected() invoked.");
+            String contents = null;
+            DriveFile file = params[0].asDriveFile();
+            DriveApi.DriveContentsResult driveContentsResult =
+                    file.open(getGoogleApiClient(), DriveFile.MODE_READ_ONLY, null).await();
+            if (!driveContentsResult.getStatus().isSuccess()) {
+                Log.v(TAG, "driveContentsResult getStatus failed. return null");
+                return null;
+            }
+            DriveContents driveContents = driveContentsResult.getDriveContents();
+            BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(driveContents.getInputStream()));
+            StringBuilder builder = new StringBuilder();
+            String line;
+            try {
+                while ((line = reader.readLine()) != null) {
+                    builder.append(line);
+                    builder.append(Constants.File.NEWLINE_UNIX_STYLE);
+                }
+                contents = builder.toString();
+            } catch (IOException e) {
+                Log.e(TAG, "IOException while reading from the stream", e);
+            }
+
+            driveContents.discard(getGoogleApiClient());
+            Log.v(TAG, "contents size: " + contents.length());
+            return contents;
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+            super.onPostExecute(result);
+            if (result == null) {
+                showMessage("Error while reading from the file");
+                return;
+            }
+            //showMessage("File contents: " + result);
+
+            if(mEditText.getText().toString().equals(result)) {
+                Log.v(TAG, "Same Same!");
+            } else {
+                Log.v(TAG, "different!!");
+                //change local data from remote
+                mEditText.setText(result);
+                disableEditMode(); //force to stop editing
+            }
         }
     }
 }
