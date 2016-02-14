@@ -11,5 +11,7 @@ public class Constants {
     abstract public class File {
         public static final String WORK_FOLDER_NAME = "TastyNote";
         public static final String WORK_FILE_NAME = "tastynote.txt";
+        public static final String NEWLINE_WINDOWS_STYLE = "\r\n";
+        public static final String NEWLINE_UNIX_STYLE = "\n";
     }
 }

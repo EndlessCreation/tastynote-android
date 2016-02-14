@@ -18,6 +18,8 @@ import android.content.Context;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.widget.Toolbar;
+import android.text.method.LinkMovementMethod;
+import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
@@ -65,10 +67,13 @@ public class MainActivity extends GoogleDriveBaseActivity {
 
         mResultsAdapter = new ResultsAdapter(this);
 
-        initUiComponents();
+        String text = FileUtil.loadDataFromLocal();
+
+        initUiComponents(text);
+
     }
 
-    private void initUiComponents() {
+    private void initUiComponents(String text) {
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -79,7 +84,7 @@ public class MainActivity extends GoogleDriveBaseActivity {
             public void onClick(View view) {
                 Log.v(TAG, "fab onClick() invoked");
                 enableEditMode();
-//                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+//                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG) //TODO: use this when notify to user
 //                        .setAction("Action", null).show();
             }
         });
@@ -89,6 +94,7 @@ public class MainActivity extends GoogleDriveBaseActivity {
 
         //TODO: setOnClickListener on textview and call enableEditMode
 
+        mEditText.setText(text);
         disableEditMode();
     }
 
@@ -275,7 +281,6 @@ public class MainActivity extends GoogleDriveBaseActivity {
 
         mTextView.setText(mEditText.getText());
 
-        //TODO: make asynchronous
         FileUtil.saveDataToLocal(mEditText.getText().toString());
 
         mEditMode = false;
@@ -292,8 +297,6 @@ public class MainActivity extends GoogleDriveBaseActivity {
         }
     }
 
-    //TODO: loadDataFromLocal
-    //TODO: saveDataToLocal
     //TODO: syncDataToRemote
     //TODO: showProgressDialog
     //TODO: hideProgressDialog
