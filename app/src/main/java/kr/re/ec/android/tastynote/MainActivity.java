@@ -44,7 +44,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.util.concurrent.ExecutionException;
 
 import kr.re.ec.android.tastynote.common.Constants;
 import kr.re.ec.android.tastynote.common.FileUtil;
@@ -115,11 +114,16 @@ public class MainActivity extends GoogleDriveBaseActivity {
     @Override
     public void onConnected(Bundle connectionHint) {
         super.onConnected(connectionHint);
+        Log.v(TAG, "onConnected() invoked");
 
-        //fetch root folder
-        Drive.DriveApi.fetchDriveId(getGoogleApiClient(),
-                Drive.DriveApi.getRootFolder(getGoogleApiClient()).getDriveId().getResourceId())
-                .setResultCallback(fetchRootCallback);
+        //if workfile wasn't fetched, fetch it
+        Log.v(TAG, "mWorkFile is " + mWorkFile);
+        if(mWorkFile == null) {
+            //fetch root folder
+            Drive.DriveApi.fetchDriveId(getGoogleApiClient(),
+                    Drive.DriveApi.getRootFolder(getGoogleApiClient()).getDriveId().getResourceId())
+                    .setResultCallback(fetchRootCallback);
+        }
     }
 
     final private ResultCallback<DriveApi.DriveIdResult> fetchRootCallback = new ResultCallback<DriveApi.DriveIdResult>() {
@@ -383,6 +387,8 @@ public class MainActivity extends GoogleDriveBaseActivity {
 
         //TODO: on view mode, to exit back button twice
     }
+
+
 
     //TODO: showProgressDialog
     //TODO: hideProgressDialog
