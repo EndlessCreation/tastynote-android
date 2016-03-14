@@ -479,7 +479,7 @@ public class MainActivity extends GoogleDriveBaseActivity {
             }
             //showMessage("File contents: " + result);
 
-            if(mEditText.getText().toString().equals(result)) {
+            if(mTextView.getText().toString().equals(result)) {
                 Log.v(TAG, "Same Same!");
             } else {
                 Log.v(TAG, "different!!");
